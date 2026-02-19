@@ -21,6 +21,7 @@ SCOPES = [
     "openid",
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/gmail.readonly",
 ]
 
 
@@ -159,10 +160,14 @@ def handle_callback() -> bool:
         # Criar sessão no servidor
         token = str(uuid.uuid4())
         sessions = _load_sessions()
-        sessions[token] = user_info
+        sessions[token] = {
+            "user_info": user_info,
+            "gmail_token": flow.credentials.to_json(),
+        }
         _save_sessions(sessions)
 
         st.session_state["user"] = user_info
+        st.session_state["gmail_token"] = flow.credentials.to_json()
         st.session_state["authenticated"] = True
         st.session_state["_sid"] = token
 
@@ -183,7 +188,13 @@ def is_authenticated() -> bool:
     if sid:
         sessions = _load_sessions()
         if sid in sessions:
-            st.session_state["user"] = sessions[sid]
+            session_data = sessions[sid]
+            # Suporta formato antigo (só user_info) e novo (dict com user_info + gmail_token)
+            if isinstance(session_data, dict) and "user_info" in session_data:
+                st.session_state["user"] = session_data["user_info"]
+                st.session_state["gmail_token"] = session_data.get("gmail_token")
+            else:
+                st.session_state["user"] = session_data
             st.session_state["authenticated"] = True
             return True
         st.query_params.clear()

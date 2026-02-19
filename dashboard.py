@@ -30,8 +30,8 @@ if not is_authenticated():
 # ==========================
 # CARREGAR DADOS DO GMAIL
 # ==========================
-def carregar_dados():
-    dados = buscar_e_extrair()
+def carregar_dados(gmail_token: str = None):
+    dados = buscar_e_extrair(gmail_token)
     if not dados:
         return pd.DataFrame(columns=["mes", "item", "valor"])
     df = pd.DataFrame(dados)
@@ -41,7 +41,8 @@ def carregar_dados():
 
 if "df_dados" not in st.session_state:
     with st.spinner("📧 Buscando boletos no Gmail..."):
-        st.session_state["df_dados"] = carregar_dados()
+        gmail_token = st.session_state.get("gmail_token")
+        st.session_state["df_dados"] = carregar_dados(gmail_token)
 
 # Exibir usuário logado na sidebar
 user = st.session_state.get("user", {})
