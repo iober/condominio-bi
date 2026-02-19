@@ -30,7 +30,6 @@ if not is_authenticated():
 # ==========================
 # CARREGAR DADOS DO GMAIL
 # ==========================
-@st.cache_data(show_spinner="📧 Buscando boletos no Gmail...")
 def carregar_dados():
     dados = buscar_e_extrair()
     if not dados:
@@ -39,6 +38,10 @@ def carregar_dados():
     df = df[df["item"].str.len() < 100]
     df = df[~df["item"].str.match(r'^[\d\s/R$]+$')]
     return df
+
+if "df_dados" not in st.session_state:
+    with st.spinner("📧 Buscando boletos no Gmail..."):
+        st.session_state["df_dados"] = carregar_dados()
 
 # Exibir usuário logado na sidebar
 user = st.session_state.get("user", {})
@@ -62,13 +65,13 @@ with st.sidebar:
     if st.button("🚪 Sair", use_container_width=True):
         logout()
     if st.button("🔄 Atualizar dados", use_container_width=True):
-        carregar_dados.clear()
+        st.session_state.pop("df_dados", None)
         st.rerun()
     st.divider()
 
 st.title("🏢 Dashboard Financeiro do Condomínio")
 
-df = carregar_dados()
+df = st.session_state["df_dados"]
 df = df.sort_values("mes")
 
 meses = sorted(df["mes"].unique())
