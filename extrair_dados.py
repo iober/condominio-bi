@@ -19,8 +19,10 @@ padrao = r'(.+?)\s*\.+\s*([\d]+\,[\d]{2})$|(.+?)\s+([\d]+\,[\d]{2})$'
 
 def get_service(gmail_token: str = None):
     import json as _json
+    from google.auth.transport.requests import Request as GRequest
     if gmail_token:
-        creds = Credentials.from_authorized_user_info(_json.loads(gmail_token), SCOPES)
+        info = _json.loads(gmail_token)
+        creds = Credentials.from_authorized_user_info(info, SCOPES)
     else:
         try:
             creds = Credentials.from_authorized_user_file('token.json', SCOPES)
@@ -29,6 +31,9 @@ def get_service(gmail_token: str = None):
             creds = Credentials.from_authorized_user_info(
                 _json.loads(st.secrets["GOOGLE_TOKEN"]), SCOPES
             )
+    # Renovar token se expirado
+    if not creds.valid and creds.refresh_token:
+        creds.refresh(GRequest())
     return build('gmail', 'v1', credentials=creds)
 
 

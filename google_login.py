@@ -138,7 +138,7 @@ def get_auth_url() -> str:
     flow = _get_flow()
     auth_url, state = flow.authorization_url(
         access_type="offline",
-        prompt="select_account",
+        prompt="consent",
     )
     st.session_state["oauth_state"] = state
     return auth_url
@@ -150,24 +150,33 @@ def handle_callback() -> bool:
     try:
         flow = _get_flow()
         flow.fetch_token(code=st.query_params["code"])
+        creds = flow.credentials
+
+        # Garantir que o token está válido e tem refresh_token
+        if not creds.valid and creds.refresh_token:
+            from google.auth.transport.requests import Request as GRequest
+            creds.refresh(GRequest())
+
         user_resp = requests.get(
             "https://www.googleapis.com/oauth2/v2/userinfo",
-            headers={"Authorization": f"Bearer {flow.credentials.token}"},
+            headers={"Authorization": f"Bearer {creds.token}"},
             timeout=10,
         )
         user_info = user_resp.json()
+
+        gmail_token = creds.to_json()
 
         # Criar sessão no servidor
         token = str(uuid.uuid4())
         sessions = _load_sessions()
         sessions[token] = {
             "user_info": user_info,
-            "gmail_token": flow.credentials.to_json(),
+            "gmail_token": gmail_token,
         }
         _save_sessions(sessions)
 
         st.session_state["user"] = user_info
-        st.session_state["gmail_token"] = flow.credentials.to_json()
+        st.session_state["gmail_token"] = gmail_token
         st.session_state["authenticated"] = True
         st.session_state["_sid"] = token
 
