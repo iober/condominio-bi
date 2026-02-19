@@ -27,6 +27,19 @@ if "code" in st.query_params:
 if not is_authenticated():
     show_login_page()
 
+# ==========================
+# CARREGAR DADOS DO GMAIL
+# ==========================
+@st.cache_data(show_spinner="📧 Buscando boletos no Gmail...")
+def carregar_dados():
+    dados = buscar_e_extrair()
+    if not dados:
+        return pd.DataFrame(columns=["mes", "item", "valor"])
+    df = pd.DataFrame(dados)
+    df = df[df["item"].str.len() < 100]
+    df = df[~df["item"].str.match(r'^[\d\s/R$]+$')]
+    return df
+
 # Exibir usuário logado na sidebar
 user = st.session_state.get("user", {})
 with st.sidebar:
@@ -54,19 +67,6 @@ with st.sidebar:
     st.divider()
 
 st.title("🏢 Dashboard Financeiro do Condomínio")
-
-# ==========================
-# CARREGAR DADOS DO GMAIL
-# ==========================
-@st.cache_data(show_spinner="📧 Buscando boletos no Gmail...")
-def carregar_dados():
-    dados = buscar_e_extrair()
-    if not dados:
-        return pd.DataFrame(columns=["mes", "item", "valor"])
-    df = pd.DataFrame(dados)
-    df = df[df["item"].str.len() < 100]
-    df = df[~df["item"].str.match(r'^[\d\s/R$]+$')]
-    return df
 
 df = carregar_dados()
 df = df.sort_values("mes")
