@@ -17,15 +17,18 @@ PALAVRAS_IGNORAR = [
 padrao = r'(.+?)\s*\.+\s*([\d]+\,[\d]{2})$|(.+?)\s+([\d]+\,[\d]{2})$'
 
 
-def get_service():
+def get_service(gmail_token: str = None):
     import json as _json
-    try:
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    except FileNotFoundError:
-        import streamlit as st
-        creds = Credentials.from_authorized_user_info(
-            _json.loads(st.secrets["GOOGLE_TOKEN"]), SCOPES
-        )
+    if gmail_token:
+        creds = Credentials.from_authorized_user_info(_json.loads(gmail_token), SCOPES)
+    else:
+        try:
+            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        except FileNotFoundError:
+            import streamlit as st
+            creds = Credentials.from_authorized_user_info(
+                _json.loads(st.secrets["GOOGLE_TOKEN"]), SCOPES
+            )
     return build('gmail', 'v1', credentials=creds)
 
 
@@ -95,8 +98,8 @@ def extrair_itens(texto: str, ano_mes: str) -> list:
     return dados
 
 
-def buscar_e_extrair():
-    service = get_service()
+def buscar_e_extrair(gmail_token: str = None):
+    service = get_service(gmail_token)
 
     results = service.users().messages().list(
         userId='me',

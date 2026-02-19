@@ -21,6 +21,7 @@ SCOPES = [
     "openid",
     "https://www.googleapis.com/auth/userinfo.email",
     "https://www.googleapis.com/auth/userinfo.profile",
+    "https://www.googleapis.com/auth/gmail.readonly",
 ]
 
 
@@ -188,7 +189,6 @@ def is_authenticated() -> bool:
         sessions = _load_sessions()
         if sid in sessions:
             session_data = sessions[sid]
-            # Suporta formato antigo (só user_info) e novo (dict com user_info + gmail_token)
             if isinstance(session_data, dict) and "user_info" in session_data:
                 st.session_state["user"] = session_data["user_info"]
                 st.session_state["gmail_token"] = session_data.get("gmail_token")
