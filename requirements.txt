@@ -1,0 +1,8 @@
+streamlit
+pandas
+plotly
+reportlab
+google-auth-oauthlib
+google-api-python-client
+pdfplumber
+requests

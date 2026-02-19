@@ -1,0 +1,31 @@
+# Ambiente virtual
+venv/
+.venv/
+env/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Credenciais e tokens sensíveis (NUNCA versionar)
+credentials.json
+token.json
+sessions.json
+
+# Dados gerados localmente
+dados_condominio.csv
+relatorio_condominio.pdf
+pdfs/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# VS Code
+.vscode/
+
+# Sistema
+.DS_Store
+Thumbs.db
