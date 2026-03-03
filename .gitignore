@@ -14,6 +14,7 @@ __pycache__/
 credentials.json
 token.json
 sessions.json
+pending_auth.json
 
 # Dados gerados localmente
 dados_condominio.csv

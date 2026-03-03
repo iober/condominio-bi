@@ -26,6 +26,40 @@ SCOPES = [
 
 
 # ==========================
+# PKCE CODE VERIFIER (persiste entre os dois Flow criados em get_auth_url / handle_callback)
+# ==========================
+_PENDING_AUTH_FILE = "pending_auth.json"
+
+def _save_code_verifier(state: str, code_verifier: str):
+    pending = {}
+    if os.path.exists(_PENDING_AUTH_FILE):
+        try:
+            with open(_PENDING_AUTH_FILE) as f:
+                pending = json.load(f)
+        except Exception:
+            pass
+    pending[state] = code_verifier
+    try:
+        with open(_PENDING_AUTH_FILE, "w") as f:
+            json.dump(pending, f)
+    except Exception:
+        pass
+
+def _pop_code_verifier(state: str) -> str:
+    if not state or not os.path.exists(_PENDING_AUTH_FILE):
+        return None
+    try:
+        with open(_PENDING_AUTH_FILE) as f:
+            pending = json.load(f)
+        code_verifier = pending.pop(state, None)
+        with open(_PENDING_AUTH_FILE, "w") as f:
+            json.dump(pending, f)
+        return code_verifier
+    except Exception:
+        return None
+
+
+# ==========================
 # SESSÕES NO SERVIDOR
 # ==========================
 _sessions_memory: dict = {}
@@ -141,6 +175,10 @@ def get_auth_url() -> str:
         prompt="consent",
     )
     st.session_state["oauth_state"] = state
+    # Salva o code_verifier PKCE — necessário porque handle_callback cria uma nova
+    # instância de Flow e o verifier precisa ser o mesmo da URL de autorização.
+    if flow.code_verifier:
+        _save_code_verifier(state, flow.code_verifier)
     return auth_url
 
 
@@ -149,6 +187,11 @@ def handle_callback() -> bool:
         return False
     try:
         flow = _get_flow()
+        # Restaura o code_verifier PKCE salvo em get_auth_url()
+        state = st.query_params.get("state", "")
+        code_verifier = _pop_code_verifier(state)
+        if code_verifier:
+            flow.code_verifier = code_verifier
         flow.fetch_token(code=st.query_params["code"])
         creds = flow.credentials
 
