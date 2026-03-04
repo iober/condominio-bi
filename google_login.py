@@ -90,16 +90,22 @@ def _save_sessions(sessions: dict):
 def inject_cookie_reader():
     """
     Injeta JS que lê o localStorage e redireciona com ?sid=TOKEN se não estiver na URL.
+    Não age quando há um callback OAuth em andamento (?code= na URL).
     """
     if st.query_params.get(SESSION_PARAM):
+        return
+    # Se o Google acabou de redirecionar com ?code=, não interferir
+    if st.query_params.get("code"):
         return
     js = f"""
     <script>
     (function() {{
         try {{
+            var url = new URL(window.parent.location.href);
+            // Não redirecionar durante callback OAuth
+            if (url.searchParams.get('code')) return;
             var sid = window.parent.localStorage.getItem('{COOKIE_NAME}');
             if (sid) {{
-                var url = new URL(window.parent.location.href);
                 if (!url.searchParams.get('{SESSION_PARAM}')) {{
                     url.searchParams.set('{SESSION_PARAM}', sid);
                     window.parent.location.href = url.toString();
@@ -185,6 +191,10 @@ def get_auth_url() -> str:
 def handle_callback() -> bool:
     if "code" not in st.query_params:
         return False
+    # Evita processar o mesmo code duas vezes na mesma sessão Streamlit
+    if st.session_state.get("_callback_done"):
+        return False
+    st.session_state["_callback_done"] = True
     try:
         flow = _get_flow()
         # Restaura o code_verifier PKCE salvo em get_auth_url()
@@ -248,6 +258,8 @@ def is_authenticated() -> bool:
                 st.session_state["user"] = session_data
             st.session_state["authenticated"] = True
             return True
+        # Remove o cookie do browser — aponta para sessão que não existe mais
+        _delete_cookie_js()
         st.query_params.clear()
     return False
 
